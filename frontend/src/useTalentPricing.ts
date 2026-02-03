@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import axios, { AxiosError } from 'axios'
 
 export interface Pricing {
@@ -91,6 +91,18 @@ export function useTalentPricing(talentId: number) {
             loading.value = false
         }
     }
+
+    const handleFocus = () => {
+        fetchPricing()
+    }
+
+    onMounted(() => {
+        window.addEventListener('focus', handleFocus)
+    })
+
+    onUnmounted(() => {
+        window.removeEventListener('focus', handleFocus)
+    })
 
     return {
         pricing,

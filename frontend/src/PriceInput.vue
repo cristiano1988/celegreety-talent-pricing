@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import currency from 'currency.js'
 
 interface Props {
     modelValue: number | null
@@ -16,7 +17,7 @@ const emit = defineEmits<{
 const displayValue = computed({
     get() {
         if (props.modelValue == null) return ''
-        return (props.modelValue / 100).toFixed(2)
+        return currency(props.modelValue, { fromCents: true }).toString()
     },
     set(value: string) {
         const normalized = value.replace(',', '.')
@@ -27,7 +28,7 @@ const displayValue = computed({
             return
         }
 
-        emit('update:modelValue', Math.round(parsed * 100))
+        emit('update:modelValue', currency(parsed).intValue)
     }
 })
 </script>
