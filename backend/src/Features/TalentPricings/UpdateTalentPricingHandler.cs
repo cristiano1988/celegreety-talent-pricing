@@ -73,18 +73,7 @@ public class UpdateTalentPricingHandler
                 StripeBusinessPriceId = newBusinessPriceId
             };
 
-            await _repository.UpsertTalentPricingAsync(updated, request.Version);
-
-
-            // 5. Audit log
-            await _repository.InsertPricingHistoryAsync(
-                request.TalentId,
-                request.PersonalPrice,
-                request.BusinessPrice,
-                currentPricing.StripeProductId,
-                newPersonalPriceId,
-                newBusinessPriceId,
-                request.ChangeReason);
+            await _repository.UpsertWithHistoryAsync(updated, request.ChangeReason, request.Version);
         }
         catch (Exception)
         {

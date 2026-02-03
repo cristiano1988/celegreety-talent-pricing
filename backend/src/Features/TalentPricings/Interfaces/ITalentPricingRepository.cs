@@ -4,7 +4,7 @@ namespace Features.TalentPricings.Interfaces;
 
 public interface ITalentPricingRepository
 {
-    Task<int> UpsertTalentPricingAsync(TalentPricingDto pricing, int? expectedVersion = null);
+    Task<int> UpsertWithHistoryAsync(TalentPricingDto pricing, string? changeReason = null, int? expectedVersion = null);
 
     Task InsertPricingHistoryAsync(
         int talentId,

@@ -36,6 +36,25 @@ public class TalentPricingRepository : ITalentPricingRepository
         );
     }
 
+    public async Task<int> UpsertWithHistoryAsync(TalentPricingDto pricing, string? changeReason = null, int? expectedVersion = null)
+    {
+        var parameters = new DynamicParameters();
+        parameters.Add("p_talent_id", pricing.TalentId);
+        parameters.Add("p_stripe_product_id", pricing.StripeProductId);
+        parameters.Add("p_personal_price", pricing.PersonalPrice);
+        parameters.Add("p_business_price", pricing.BusinessPrice);
+        parameters.Add("p_stripe_personal_price_id", pricing.StripePersonalPriceId);
+        parameters.Add("p_stripe_business_price_id", pricing.StripeBusinessPriceId);
+        parameters.Add("p_change_reason", changeReason);
+        parameters.Add("p_expected_version", expectedVersion);
+
+        return await _db.ExecuteScalarAsync<int>(
+            "fn_upsert_talent_pricing_with_history",
+            parameters,
+            commandType: CommandType.StoredProcedure
+        );
+    }
+
     public async Task InsertPricingHistoryAsync(
         int talentId,
         int personalPrice,

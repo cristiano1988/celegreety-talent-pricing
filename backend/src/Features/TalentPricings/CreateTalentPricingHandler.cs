@@ -66,18 +66,7 @@ public class CreateTalentPricingHandler : IRequestHandler<CreateTalentPricingCom
                 StripeBusinessPriceId = businessPriceId
             };
 
-            await _repository.UpsertTalentPricingAsync(pricing);
-
-            // 4. Create Audit Log
-            await _repository.InsertPricingHistoryAsync(
-                request.TalentId,
-                request.PersonalPrice,
-                request.BusinessPrice,
-                productId,
-                personalPriceId,
-                businessPriceId,
-                "Initial pricing setup"
-            );
+            await _repository.UpsertWithHistoryAsync(pricing, "Initial pricing setup");
 
             return new CreateTalentPricingResult
             {
