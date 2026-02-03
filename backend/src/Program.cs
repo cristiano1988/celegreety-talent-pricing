@@ -32,6 +32,8 @@ builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+app.UseMiddleware<Common.Middleware.ExceptionHandlingMiddleware>();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

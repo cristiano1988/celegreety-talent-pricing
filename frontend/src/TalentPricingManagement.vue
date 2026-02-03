@@ -9,6 +9,7 @@ const props = defineProps<{
 
 const {
     pricing,
+    history,
     loading,
     error,
     hasExistingPricing,
@@ -16,6 +17,8 @@ const {
     createPricing,
     updatePricing
 } = useTalentPricing(props.talentId)
+
+import PricingHistoryList from './PricingHistoryList.vue'
 
 onMounted(fetchPricing)
 
@@ -54,5 +57,7 @@ async function handleSubmit(payload: {
             :showChangeReason="hasExistingPricing"
             @submit="handleSubmit"
         />
+
+        <PricingHistoryList :history="history" />
     </div>
 </template>

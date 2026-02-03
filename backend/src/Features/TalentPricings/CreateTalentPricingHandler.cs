@@ -13,11 +13,13 @@ public class CreateTalentPricingHandler : IRequestHandler<CreateTalentPricingCom
 {
     private readonly ITalentPricingRepository _repository;
     private readonly IStripeService _stripe;
+    private readonly ILogger<CreateTalentPricingHandler> _logger;
 
-    public CreateTalentPricingHandler(ITalentPricingRepository repository, IStripeService stripe)
+    public CreateTalentPricingHandler(ITalentPricingRepository repository, IStripeService stripe, ILogger<CreateTalentPricingHandler> logger)
     {
         _repository = repository;
         _stripe = stripe;
+        _logger = logger;
     }
 
     public async Task<CreateTalentPricingResult> Handle(CreateTalentPricingCommand request, CancellationToken cancellationToken)
@@ -32,15 +34,14 @@ public class CreateTalentPricingHandler : IRequestHandler<CreateTalentPricingCom
         string? productId = null;
         try
         {
-            // 1. Create Stripe Product
-            // We use the talent ID as metadata to link back to our system.
+            _logger.LogInformation("Creating Stripe product for talent {TalentId}", request.TalentId);
             productId = await _stripe.CreateProductAsync(
                 request.TalentId, 
                 $"Talent {request.TalentId}"
             );
+            _logger.LogInformation("Stripe product created: {ProductId}", productId);
 
-            // 2. Create Stripe Prices
-            // Create separate price objects for Personal and Business tiers.
+            _logger.LogInformation("Creating Stripe prices for product {ProductId}", productId);
             var personalPriceId = await _stripe.CreatePriceAsync(
                 productId,
                 request.PersonalPrice,
@@ -54,8 +55,8 @@ public class CreateTalentPricingHandler : IRequestHandler<CreateTalentPricingCom
                 request.Currency,
                 "business"
             );
+            _logger.LogInformation("Stripe prices created: {PersonalPriceId}, {BusinessPriceId}", personalPriceId, businessPriceId);
 
-            // 3. Persist to Database
             var pricing = new TalentPricingDto
             {
                 TalentId = request.TalentId,
@@ -67,6 +68,7 @@ public class CreateTalentPricingHandler : IRequestHandler<CreateTalentPricingCom
             };
 
             await _repository.UpsertWithHistoryAsync(pricing, "Initial pricing setup");
+            _logger.LogInformation("Successfully created pricing and audit log for talent {TalentId}", request.TalentId);
 
             return new CreateTalentPricingResult
             {
@@ -79,16 +81,18 @@ public class CreateTalentPricingHandler : IRequestHandler<CreateTalentPricingCom
                 LastSyncedAt = DateTimeOffset.UtcNow
             };
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Failed to create talent pricing for talent {TalentId}", request.TalentId);
             // Compensating Transaction: Rollback Stripe changes
             // If we successfully created a Stripe product but failed to save to our DB,
             // we archive the product to prevent "ghost" products in Stripe.
             if (!string.IsNullOrEmpty(productId))
             {
+                _logger.LogWarning("Rolling back Stripe product {ProductId} due to failure", productId);
                 // We don't need to await this if we want fail-fast, but better to ensure cleanup.
                 // Swallowing any error here to ensure the original exception bubbles up.
-                try { await _stripe.ArchiveProductAsync(productId); } catch {}
+                try { await _stripe.ArchiveProductAsync(productId); } catch (Exception rollbackEx) { _logger.LogError(rollbackEx, "Failed to rollback Stripe product {ProductId}", productId); }
             }
             throw;
         }

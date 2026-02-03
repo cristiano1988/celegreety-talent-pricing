@@ -10,14 +10,17 @@ public class UpdateTalentPricingHandler
 {
     private readonly ITalentPricingRepository _repository;
     private readonly IStripeService _stripe;
+    private readonly ILogger<UpdateTalentPricingHandler> _logger;
 
 
     public UpdateTalentPricingHandler(
         ITalentPricingRepository repository,
-        IStripeService stripe)
+        IStripeService stripe,
+        ILogger<UpdateTalentPricingHandler> logger)
     {
         _repository = repository;
         _stripe = stripe;
+        _logger = logger;
     }
 
 
@@ -38,14 +41,16 @@ public class UpdateTalentPricingHandler
 
         var currentPricing = current.Current;
 
+        _logger.LogInformation("Archiving old Stripe prices for talent {TalentId}", request.TalentId);
         // 2. Archive old Stripe prices (Cleanup task - failure should not block update)
         try 
         {
             await _stripe.ArchivePriceAsync(currentPricing.StripePersonalPriceId);
             await _stripe.ArchivePriceAsync(currentPricing.StripeBusinessPriceId);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            _logger.LogWarning(ex, "Failed to archive old Stripe prices for talent {TalentId}. Proceeding with update.", request.TalentId);
             // Log error here (e.g. via ILogger) but proceed.
             // Failure to archive an old price is not a critical business failure.
         }
@@ -55,7 +60,7 @@ public class UpdateTalentPricingHandler
 
         try
         {
-            // 3. Create new Stripe prices
+            _logger.LogInformation("Creating new Stripe prices for product {ProductId}", currentPricing.StripeProductId);
             newPersonalPriceId = await _stripe.CreatePriceAsync(
                 currentPricing.StripeProductId,
                 request.PersonalPrice,
@@ -68,9 +73,9 @@ public class UpdateTalentPricingHandler
                 request.BusinessPrice,
                 request.Currency,
                 "business");
+            _logger.LogInformation("New Stripe prices created: {PersonalPriceId}, {BusinessPriceId}", newPersonalPriceId, newBusinessPriceId);
 
 
-            // 4. Update DB
             var updated = new TalentPricingDto
             {
                 TalentId = request.TalentId,
@@ -82,14 +87,16 @@ public class UpdateTalentPricingHandler
             };
 
             await _repository.UpsertWithHistoryAsync(updated, request.ChangeReason, request.Version);
+            _logger.LogInformation("Successfully updated pricing and audit log for talent {TalentId}", request.TalentId);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Failed to update pricing for talent {TalentId}", request.TalentId);
             // Compensating Transaction: Archive newly created prices
             // If we fail to save the new pricing to our DB, we should disable the 
             // pricing we just created in Stripe to avoid having "active" but unused prices.
-            if (!string.IsNullOrEmpty(newPersonalPriceId)) try { await _stripe.ArchivePriceAsync(newPersonalPriceId); } catch {}
-            if (!string.IsNullOrEmpty(newBusinessPriceId)) try { await _stripe.ArchivePriceAsync(newBusinessPriceId); } catch {}
+            if (!string.IsNullOrEmpty(newPersonalPriceId)) try { await _stripe.ArchivePriceAsync(newPersonalPriceId); } catch (Exception rollbackEx) { _logger.LogError(rollbackEx, "Failed to rollback new personal price {PriceId}", newPersonalPriceId); }
+            if (!string.IsNullOrEmpty(newBusinessPriceId)) try { await _stripe.ArchivePriceAsync(newBusinessPriceId); } catch (Exception rollbackEx) { _logger.LogError(rollbackEx, "Failed to rollback new business price {PriceId}", newBusinessPriceId); }
             
             // NOTE: We do not un-archive the OLD prices here because Stripe API doesn't easily support "un-archiving".
             // Ideally, we would only archive the old prices AFTER successful DB update, 

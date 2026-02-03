@@ -12,8 +12,21 @@ export interface Pricing {
     version: number
 }
 
+export interface PricingHistory {
+    personalPrice: number
+    businessPrice: number
+    changeReason: string
+    createdAt: string
+}
+
+export interface PricingWithHistory {
+    current: Pricing
+    history: PricingHistory[]
+}
+
 export function useTalentPricing(talentId: number) {
     const pricing = ref<Pricing | null>(null)
+    const history = ref<PricingHistory[]>([])
     const loading = ref(false)
     const error = ref<string | null>(null)
 
@@ -24,8 +37,9 @@ export function useTalentPricing(talentId: number) {
         error.value = null
 
         try {
-            const { data } = await axios.get<Pricing>(`/api/talentpricing/${talentId}`)
-            pricing.value = data
+            const { data } = await axios.get<PricingWithHistory>(`/api/talentpricing/${talentId}`)
+            pricing.value = data.current
+            history.value = data.history
         } catch (e: unknown) {
             const err = e as AxiosError
             if (err.response?.status !== 404)
@@ -106,6 +120,7 @@ export function useTalentPricing(talentId: number) {
 
     return {
         pricing,
+        history,
         loading,
         error,
         hasExistingPricing,
