@@ -58,4 +58,13 @@ public class StripeService : IStripeService
             Active = false
         });
     }
+
+    public async Task ArchiveProductAsync(string productId)
+    {
+        var service = new ProductService();
+        await service.UpdateAsync(productId, new ProductUpdateOptions
+        {
+            Active = false
+        });
+    }
 }

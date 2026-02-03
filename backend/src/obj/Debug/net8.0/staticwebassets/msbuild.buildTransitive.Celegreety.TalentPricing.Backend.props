@@ -1,3 +1,0 @@
-﻿<Project>
-  <Import Project="..\buildMultiTargeting\Celegreety.TalentPricing.Backend.props" />
-</Project>

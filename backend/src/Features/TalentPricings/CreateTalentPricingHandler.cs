@@ -26,62 +26,79 @@ public class CreateTalentPricingHandler : IRequestHandler<CreateTalentPricingCom
         if (request.BusinessPrice < request.PersonalPrice)
             throw new ArgumentException("Business price must be greater than or equal to personal price.");
 
-        // 1. Create Stripe Product
-        // We use the talent ID as metadata to link back to our system.
-        var productId = await _stripe.CreateProductAsync(
-            request.TalentId, 
-            $"Talent {request.TalentId}"
-        );
-
-        // 2. Create Stripe Prices
-        // Create separate price objects for Personal and Business tiers.
-        var personalPriceId = await _stripe.CreatePriceAsync(
-            productId,
-            request.PersonalPrice,
-            request.Currency,
-            "personal"
-        );
-
-        var businessPriceId = await _stripe.CreatePriceAsync(
-            productId,
-            request.BusinessPrice,
-            request.Currency,
-            "business"
-        );
-
-        // 3. Persist to Database
-        var pricing = new TalentPricingDto
+        string? productId = null;
+        try
         {
-            TalentId = request.TalentId,
-            StripeProductId = productId,
-            PersonalPrice = request.PersonalPrice,
-            BusinessPrice = request.BusinessPrice,
-            StripePersonalPriceId = personalPriceId,
-            StripeBusinessPriceId = businessPriceId
-        };
+            // 1. Create Stripe Product
+            // We use the talent ID as metadata to link back to our system.
+            productId = await _stripe.CreateProductAsync(
+                request.TalentId, 
+                $"Talent {request.TalentId}"
+            );
 
-        await _repository.UpsertTalentPricingAsync(pricing);
+            // 2. Create Stripe Prices
+            // Create separate price objects for Personal and Business tiers.
+            var personalPriceId = await _stripe.CreatePriceAsync(
+                productId,
+                request.PersonalPrice,
+                request.Currency,
+                "personal"
+            );
 
-        // 4. Create Audit Log
-        await _repository.InsertPricingHistoryAsync(
-            request.TalentId,
-            request.PersonalPrice,
-            request.BusinessPrice,
-            productId,
-            personalPriceId,
-            businessPriceId,
-            "Initial pricing setup"
-        );
+            var businessPriceId = await _stripe.CreatePriceAsync(
+                productId,
+                request.BusinessPrice,
+                request.Currency,
+                "business"
+            );
 
-        return new CreateTalentPricingResult
+            // 3. Persist to Database
+            var pricing = new TalentPricingDto
+            {
+                TalentId = request.TalentId,
+                StripeProductId = productId,
+                PersonalPrice = request.PersonalPrice,
+                BusinessPrice = request.BusinessPrice,
+                StripePersonalPriceId = personalPriceId,
+                StripeBusinessPriceId = businessPriceId
+            };
+
+            await _repository.UpsertTalentPricingAsync(pricing);
+
+            // 4. Create Audit Log
+            await _repository.InsertPricingHistoryAsync(
+                request.TalentId,
+                request.PersonalPrice,
+                request.BusinessPrice,
+                productId,
+                personalPriceId,
+                businessPriceId,
+                "Initial pricing setup"
+            );
+
+            return new CreateTalentPricingResult
+            {
+                TalentId = request.TalentId,
+                StripeProductId = productId,
+                PersonalPrice = request.PersonalPrice,
+                BusinessPrice = request.BusinessPrice,
+                StripePersonalPriceId = personalPriceId,
+                StripeBusinessPriceId = businessPriceId,
+                LastSyncedAt = DateTimeOffset.UtcNow
+            };
+        }
+        catch (Exception)
         {
-            TalentId = request.TalentId,
-            StripeProductId = productId,
-            PersonalPrice = request.PersonalPrice,
-            BusinessPrice = request.BusinessPrice,
-            StripePersonalPriceId = personalPriceId,
-            StripeBusinessPriceId = businessPriceId,
-            LastSyncedAt = DateTimeOffset.UtcNow
-        };
+            // Compensating Transaction: Rollback Stripe changes
+            // If we successfully created a Stripe product but failed to save to our DB,
+            // we archive the product to prevent "ghost" products in Stripe.
+            if (!string.IsNullOrEmpty(productId))
+            {
+                // We don't need to await this if we want fail-fast, but better to ensure cleanup.
+                // Swallowing any error here to ensure the original exception bubbles up.
+                try { await _stripe.ArchiveProductAsync(productId); } catch {}
+            }
+            throw;
+        }
     }
 }

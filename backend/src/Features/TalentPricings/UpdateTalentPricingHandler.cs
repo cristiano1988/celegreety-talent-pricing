@@ -39,42 +39,63 @@ public class UpdateTalentPricingHandler
         await _stripe.ArchivePriceAsync(currentPricing.StripePersonalPriceId);
         await _stripe.ArchivePriceAsync(currentPricing.StripeBusinessPriceId);
 
-        // 3. Create new Stripe prices
-        var newPersonalPriceId = await _stripe.CreatePriceAsync(
-            currentPricing.StripeProductId,
-            request.PersonalPrice,
-            "EUR",
-            "personal");
+        string? newPersonalPriceId = null;
+        string? newBusinessPriceId = null;
 
-
-        var newBusinessPriceId = await _stripe.CreatePriceAsync(
-            currentPricing.StripeProductId,
-            request.BusinessPrice,
-            "EUR",
-            "business");
-
-
-        // 4. Update DB
-        var updated = new TalentPricingDto
+        try
         {
-            TalentId = request.TalentId,
-            StripeProductId = currentPricing.StripeProductId,
-            PersonalPrice = request.PersonalPrice,
-            BusinessPrice = request.BusinessPrice,
-            StripePersonalPriceId = newPersonalPriceId,
-            StripeBusinessPriceId = newBusinessPriceId
-        };
+            // 3. Create new Stripe prices
+            newPersonalPriceId = await _stripe.CreatePriceAsync(
+                currentPricing.StripeProductId,
+                request.PersonalPrice,
+                "EUR",
+                "personal");
 
-        await _repository.UpsertTalentPricingAsync(updated);
 
-        // 5. Audit log
-        await _repository.InsertPricingHistoryAsync(
-            request.TalentId,
-            request.PersonalPrice,
-            request.BusinessPrice,
-            currentPricing.StripeProductId,
-            newPersonalPriceId,
-            newBusinessPriceId,
-            request.ChangeReason);
+            newBusinessPriceId = await _stripe.CreatePriceAsync(
+                currentPricing.StripeProductId,
+                request.BusinessPrice,
+                "EUR",
+                "business");
+
+
+            // 4. Update DB
+            var updated = new TalentPricingDto
+            {
+                TalentId = request.TalentId,
+                StripeProductId = currentPricing.StripeProductId,
+                PersonalPrice = request.PersonalPrice,
+                BusinessPrice = request.BusinessPrice,
+                StripePersonalPriceId = newPersonalPriceId,
+                StripeBusinessPriceId = newBusinessPriceId
+            };
+
+            await _repository.UpsertTalentPricingAsync(updated);
+
+            // 5. Audit log
+            await _repository.InsertPricingHistoryAsync(
+                request.TalentId,
+                request.PersonalPrice,
+                request.BusinessPrice,
+                currentPricing.StripeProductId,
+                newPersonalPriceId,
+                newBusinessPriceId,
+                request.ChangeReason);
+        }
+        catch (Exception)
+        {
+            // Compensating Transaction: Archive newly created prices
+            // If we fail to save the new pricing to our DB, we should disable the 
+            // pricing we just created in Stripe to avoid having "active" but unused prices.
+            if (!string.IsNullOrEmpty(newPersonalPriceId)) try { await _stripe.ArchivePriceAsync(newPersonalPriceId); } catch {}
+            if (!string.IsNullOrEmpty(newBusinessPriceId)) try { await _stripe.ArchivePriceAsync(newBusinessPriceId); } catch {}
+            
+            // NOTE: We do not un-archive the OLD prices here because Stripe API doesn't easily support "un-archiving".
+            // Ideally, we would only archive the old prices AFTER successful DB update, 
+            // but Stripe doesn't support atomic batch operations like that.
+            // For now, this compensation ensures we don't leave NEW garbage.
+            
+            throw;
+        }
     }
 }

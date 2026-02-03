@@ -1,0 +1,33 @@
+# .gitignore
+
+# C# / .NET
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.userprefs
+*.launchSettings.json
+
+# Node.js / Frontend
+node_modules/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea/
+.vscode/
+!/.vscode/settings.json
+!/.vscode/tasks.json
+!/.vscode/launch.json
+!/.vscode/extensions.json
