@@ -1,0 +1,90 @@
+{
+	"info": {
+		"_postman_id": "b532d569-8e5f-464a-9762-123456789abc",
+		"name": "Talent Pricing Management",
+		"description": "API collection for Talent Pricing Management System",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Create Pricing",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"talentId\": 123,\n    \"personalPrice\": 5000,\n    \"businessPrice\": 10000,\n    \"currency\": \"EUR\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/talentpricing",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"talentpricing"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Pricing",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/talentpricing/123",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"talentpricing",
+						"123"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update Pricing",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"talentId\": 123,\n    \"personalPrice\": 6000,\n    \"businessPrice\": 12000,\n    \"changeReason\": \"Market adjustment\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/talentpricing",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"talentpricing"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:5000",
+			"type": "string"
+		}
+	]
+}
