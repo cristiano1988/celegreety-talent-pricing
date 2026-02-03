@@ -25,6 +25,9 @@ public class UpdateTalentPricingHandler
         UpdateTalentPricingCommand request,
         CancellationToken cancellationToken)
     {
+        if (request.PersonalPrice <= 0 || request.BusinessPrice <= 0)
+            throw new ArgumentException("Prices must be greater than zero.");
+
         if (request.BusinessPrice < request.PersonalPrice)
             throw new ArgumentException("Business price must be >= personal price");
 
@@ -48,14 +51,14 @@ public class UpdateTalentPricingHandler
             newPersonalPriceId = await _stripe.CreatePriceAsync(
                 currentPricing.StripeProductId,
                 request.PersonalPrice,
-                "EUR",
+                request.Currency,
                 "personal");
 
 
             newBusinessPriceId = await _stripe.CreatePriceAsync(
                 currentPricing.StripeProductId,
                 request.BusinessPrice,
-                "EUR",
+                request.Currency,
                 "business");
 
 

@@ -7,5 +7,6 @@ public record UpdateTalentPricingCommand(
     int PersonalPrice,
     int BusinessPrice,
     string? ChangeReason,
-    int Version
+    int Version,
+    string Currency = "EUR"
 ) : IRequest;

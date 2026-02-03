@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Features.TalentPricings.Commands;
 using Features.TalentPricings.Queries;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Controllers;
 
@@ -11,6 +12,7 @@ namespace Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
+[Authorize]
 public class TalentPricingController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -58,6 +60,7 @@ public class TalentPricingController : ControllerBase
     /// <param name="command">The pricing update command.</param>
     /// <returns>No content.</returns>
     [HttpPut]
+    [Authorize(Policy = "CanEditTalent")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> UpdatePricing([FromBody] UpdateTalentPricingCommand command)

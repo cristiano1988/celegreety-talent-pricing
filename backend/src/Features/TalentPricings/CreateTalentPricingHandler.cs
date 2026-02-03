@@ -23,6 +23,9 @@ public class CreateTalentPricingHandler : IRequestHandler<CreateTalentPricingCom
     public async Task<CreateTalentPricingResult> Handle(CreateTalentPricingCommand request, CancellationToken cancellationToken)
     {
         // Validation
+        if (request.PersonalPrice <= 0 || request.BusinessPrice <= 0)
+            throw new ArgumentException("Prices must be greater than zero.");
+
         if (request.BusinessPrice < request.PersonalPrice)
             throw new ArgumentException("Business price must be greater than or equal to personal price.");
 
