@@ -6,11 +6,12 @@ namespace Services;
 
 public class StripeService : IStripeService
 {
+    private readonly IStripeClient _stripeClient;
     private readonly ResiliencePipeline _pipeline;
 
-    public StripeService(IConfiguration configuration)
+    public StripeService(IStripeClient stripeClient)
     {
-        StripeConfiguration.ApiKey = configuration["Stripe:SecretKey"];
+        _stripeClient = stripeClient;
 
         _pipeline = new ResiliencePipelineBuilder()
             .AddRetry(new RetryStrategyOptions
@@ -36,7 +37,7 @@ public class StripeService : IStripeService
         };
 
         var requestOptions = new RequestOptions { IdempotencyKey = Guid.NewGuid().ToString() };
-        var service = new ProductService();
+        var service = new ProductService(_stripeClient);
         
         var product = await _pipeline.ExecuteAsync(async cancellationToken => 
             await service.CreateAsync(options, requestOptions, cancellationToken));
@@ -62,7 +63,7 @@ public class StripeService : IStripeService
         };
 
         var requestOptions = new RequestOptions { IdempotencyKey = Guid.NewGuid().ToString() };
-        var service = new PriceService();
+        var service = new PriceService(_stripeClient);
 
         var price = await _pipeline.ExecuteAsync(async cancellationToken => 
             await service.CreateAsync(options, requestOptions, cancellationToken));
@@ -72,7 +73,7 @@ public class StripeService : IStripeService
 
     public async Task ArchivePriceAsync(string priceId)
     {
-        var service = new PriceService();
+        var service = new PriceService(_stripeClient);
         var requestOptions = new RequestOptions { IdempotencyKey = Guid.NewGuid().ToString() };
 
         await _pipeline.ExecuteAsync(async cancellationToken =>
@@ -84,7 +85,7 @@ public class StripeService : IStripeService
 
     public async Task ArchiveProductAsync(string productId)
     {
-        var service = new ProductService();
+        var service = new ProductService(_stripeClient);
         var requestOptions = new RequestOptions { IdempotencyKey = Guid.NewGuid().ToString() };
 
         await _pipeline.ExecuteAsync(async cancellationToken =>

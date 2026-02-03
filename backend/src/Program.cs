@@ -4,6 +4,7 @@ using Features.TalentPricings.Repository;
 using Services;
 using Npgsql;
 using FluentValidation;
+using Stripe;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +19,8 @@ builder.Services.AddScoped<IDbConnection>(sp =>
 
 // Repositories & Services
 builder.Services.AddScoped<ITalentPricingRepository, TalentPricingRepository>();
+builder.Services.AddScoped<IStripeClient>(sp => 
+    new StripeClient(builder.Configuration["Stripe:SecretKey"]));
 builder.Services.AddScoped<IStripeService, StripeService>();
 
 // MediatR

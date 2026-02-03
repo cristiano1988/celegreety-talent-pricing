@@ -41,25 +41,12 @@ public class UpdateTalentPricingHandler
 
         var currentPricing = current.Current;
 
-        _logger.LogInformation("Archiving old Stripe prices for talent {TalentId}", request.TalentId);
-        // 2. Archive old Stripe prices (Cleanup task - failure should not block update)
-        try 
-        {
-            await _stripe.ArchivePriceAsync(currentPricing.StripePersonalPriceId);
-            await _stripe.ArchivePriceAsync(currentPricing.StripeBusinessPriceId);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to archive old Stripe prices for talent {TalentId}. Proceeding with update.", request.TalentId);
-            // Log error here (e.g. via ILogger) but proceed.
-            // Failure to archive an old price is not a critical business failure.
-        }
-
         string? newPersonalPriceId = null;
         string? newBusinessPriceId = null;
 
         try
         {
+            // 2. Create new Stripe prices
             _logger.LogInformation("Creating new Stripe prices for product {ProductId}", currentPricing.StripeProductId);
             newPersonalPriceId = await _stripe.CreatePriceAsync(
                 currentPricing.StripeProductId,
@@ -76,6 +63,7 @@ public class UpdateTalentPricingHandler
             _logger.LogInformation("New Stripe prices created: {PersonalPriceId}, {BusinessPriceId}", newPersonalPriceId, newBusinessPriceId);
 
 
+            // 3. Update DB
             var updated = new TalentPricingDto
             {
                 TalentId = request.TalentId,
@@ -86,22 +74,34 @@ public class UpdateTalentPricingHandler
                 StripeBusinessPriceId = newBusinessPriceId
             };
 
+            _logger.LogInformation("Persisting atomic pricing update to DB for talent {TalentId}", request.TalentId);
             await _repository.UpsertWithHistoryAsync(updated, request.ChangeReason, request.Version);
             _logger.LogInformation("Successfully updated pricing and audit log for talent {TalentId}", request.TalentId);
+
+            // 4. Archive old Stripe prices (Cleanup task - failure should not block update)
+            _logger.LogInformation("Archiving old Stripe prices for talent {TalentId}", request.TalentId);
+            try 
+            {
+                await _stripe.ArchivePriceAsync(currentPricing.StripePersonalPriceId);
+                await _stripe.ArchivePriceAsync(currentPricing.StripeBusinessPriceId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to archive old Stripe prices for talent {TalentId}. This is a non-critical cleanup failure.", request.TalentId);
+            }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to update pricing for talent {TalentId}", request.TalentId);
-            // Compensating Transaction: Archive newly created prices
-            // If we fail to save the new pricing to our DB, we should disable the 
-            // pricing we just created in Stripe to avoid having "active" but unused prices.
-            if (!string.IsNullOrEmpty(newPersonalPriceId)) try { await _stripe.ArchivePriceAsync(newPersonalPriceId); } catch (Exception rollbackEx) { _logger.LogError(rollbackEx, "Failed to rollback new personal price {PriceId}", newPersonalPriceId); }
-            if (!string.IsNullOrEmpty(newBusinessPriceId)) try { await _stripe.ArchivePriceAsync(newBusinessPriceId); } catch (Exception rollbackEx) { _logger.LogError(rollbackEx, "Failed to rollback new business price {PriceId}", newBusinessPriceId); }
             
-            // NOTE: We do not un-archive the OLD prices here because Stripe API doesn't easily support "un-archiving".
-            // Ideally, we would only archive the old prices AFTER successful DB update, 
-            // but Stripe doesn't support atomic batch operations like that.
-            // For now, this compensation ensures we don't leave NEW garbage.
+            // Compensating Transaction: Archive newly created prices if they were created
+            if (!string.IsNullOrEmpty(newPersonalPriceId)) 
+                try { await _stripe.ArchivePriceAsync(newPersonalPriceId); } 
+                catch (Exception rollbackEx) { _logger.LogError(rollbackEx, "Failed to rollback new personal price {PriceId}", newPersonalPriceId); }
+            
+            if (!string.IsNullOrEmpty(newBusinessPriceId)) 
+                try { await _stripe.ArchivePriceAsync(newBusinessPriceId); } 
+                catch (Exception rollbackEx) { _logger.LogError(rollbackEx, "Failed to rollback new business price {PriceId}", newBusinessPriceId); }
             
             throw;
         }
