@@ -1,0 +1,80 @@
+using MediatR;
+using Features.TalentPricings.Interfaces;
+using Features.TalentPricings.Models;
+using Services;
+
+namespace Features.TalentPricings.Commands;
+
+public class UpdateTalentPricingHandler
+    : IRequestHandler<UpdateTalentPricingCommand>
+{
+    private readonly ITalentPricingRepository _repository;
+    private readonly IStripeService _stripe;
+
+
+    public UpdateTalentPricingHandler(
+        ITalentPricingRepository repository,
+        IStripeService stripe)
+    {
+        _repository = repository;
+        _stripe = stripe;
+    }
+
+
+    public async Task Handle(
+        UpdateTalentPricingCommand request,
+        CancellationToken cancellationToken)
+    {
+        if (request.BusinessPrice < request.PersonalPrice)
+            throw new ArgumentException("Business price must be >= personal price");
+
+        // 1. Get current pricing
+        var current = await _repository.GetTalentPricingWithHistoryAsync(request.TalentId);
+        if (current == null)
+            throw new InvalidOperationException("Pricing does not exist");
+
+        var currentPricing = current.Current;
+
+        // 2. Archive old Stripe prices
+        await _stripe.ArchivePriceAsync(currentPricing.StripePersonalPriceId);
+        await _stripe.ArchivePriceAsync(currentPricing.StripeBusinessPriceId);
+
+        // 3. Create new Stripe prices
+        var newPersonalPriceId = await _stripe.CreatePriceAsync(
+            currentPricing.StripeProductId,
+            request.PersonalPrice,
+            "EUR",
+            "personal");
+
+
+        var newBusinessPriceId = await _stripe.CreatePriceAsync(
+            currentPricing.StripeProductId,
+            request.BusinessPrice,
+            "EUR",
+            "business");
+
+
+        // 4. Update DB
+        var updated = new TalentPricingDto
+        {
+            TalentId = request.TalentId,
+            StripeProductId = currentPricing.StripeProductId,
+            PersonalPrice = request.PersonalPrice,
+            BusinessPrice = request.BusinessPrice,
+            StripePersonalPriceId = newPersonalPriceId,
+            StripeBusinessPriceId = newBusinessPriceId
+        };
+
+        await _repository.UpsertTalentPricingAsync(updated);
+
+        // 5. Audit log
+        await _repository.InsertPricingHistoryAsync(
+            request.TalentId,
+            request.PersonalPrice,
+            request.BusinessPrice,
+            currentPricing.StripeProductId,
+            newPersonalPriceId,
+            newBusinessPriceId,
+            request.ChangeReason);
+    }
+}

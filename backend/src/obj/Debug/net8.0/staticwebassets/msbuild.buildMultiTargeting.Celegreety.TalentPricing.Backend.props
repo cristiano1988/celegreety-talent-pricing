@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="..\build\Celegreety.TalentPricing.Backend.props" />
+</Project>
