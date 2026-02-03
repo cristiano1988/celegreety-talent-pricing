@@ -18,7 +18,7 @@ public class TalentPricingRepository : ITalentPricingRepository
         _db = db;
     }
 
-    public async Task<int> UpsertTalentPricingAsync(TalentPricingDto pricing)
+    public async Task<int> UpsertTalentPricingAsync(TalentPricingDto pricing, int? expectedVersion = null)
     {
         var parameters = new DynamicParameters();
         parameters.Add("p_talent_id", pricing.TalentId);
@@ -27,6 +27,7 @@ public class TalentPricingRepository : ITalentPricingRepository
         parameters.Add("p_business_price", pricing.BusinessPrice);
         parameters.Add("p_stripe_personal_price_id", pricing.StripePersonalPriceId);
         parameters.Add("p_stripe_business_price_id", pricing.StripeBusinessPriceId);
+        parameters.Add("p_expected_version", expectedVersion);
 
         return await _db.ExecuteScalarAsync<int>(
             "fn_upsert_talent_pricing",

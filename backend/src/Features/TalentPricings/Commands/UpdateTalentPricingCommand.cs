@@ -6,5 +6,6 @@ public record UpdateTalentPricingCommand(
     int TalentId,
     int PersonalPrice,
     int BusinessPrice,
-    string? ChangeReason
+    string? ChangeReason,
+    int Version
 ) : IRequest;

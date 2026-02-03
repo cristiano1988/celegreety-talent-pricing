@@ -9,4 +9,5 @@ public class TalentPricingDto
     public string StripePersonalPriceId { get; set; } = default!;
     public string StripeBusinessPriceId { get; set; } = default!;
     public DateTimeOffset PricesLastSyncedAt { get; set; }
+    public int Version { get; set; }
 }

@@ -9,6 +9,7 @@ export interface Pricing {
     stripePersonalPriceId: string
     stripeBusinessPriceId: string
     pricesLastSyncedAt: string
+    version: number
 }
 
 export function useTalentPricing(talentId: number) {
@@ -64,16 +65,28 @@ export function useTalentPricing(talentId: number) {
         loading.value = true
         error.value = null
 
+        if (!pricing.value) return
+
         try {
             await axios.put('/api/talentpricing', {
                 talentId,
                 personalPrice: payload.personalPrice,
                 businessPrice: payload.businessPrice,
-                changeReason: payload.changeReason
+                changeReason: payload.changeReason,
+                version: pricing.value.version
             })
             await fetchPricing()
         } catch (e: unknown) {
-            error.value = 'Failed to update pricing'
+            const err = e as AxiosError
+            // Ideally backend returns 409, but currently it throws 500 with message. 
+            // We should check response data. assuming 500 for now based on 'throw Exception' in SQL.
+            // If backend mapped specific exception to 409, we'd check that.
+            if (err.response?.status === 500  /* || err.response?.status === 409 */) {
+                // Simple error message for now, exact matching depends on backend error serialization
+                error.value = 'Pricing was updated by another user. Please refresh.'
+            } else {
+                error.value = 'Failed to update pricing'
+            }
         } finally {
             loading.value = false
         }
