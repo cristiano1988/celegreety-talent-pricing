@@ -3,6 +3,7 @@ using Features.TalentPricings.Interfaces;
 using Features.TalentPricings.Repository;
 using Services;
 using Npgsql;
+using FluentValidation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,7 +21,13 @@ builder.Services.AddScoped<ITalentPricingRepository, TalentPricingRepository>();
 builder.Services.AddScoped<IStripeService, StripeService>();
 
 // MediatR
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
+builder.Services.AddMediatR(cfg => {
+    cfg.RegisterServicesFromAssembly(typeof(Program).Assembly);
+    cfg.AddOpenBehavior(typeof(Common.Behaviors.ValidationBehavior<,>));
+});
+
+// FluentValidation
+builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
 
 var app = builder.Build();
 

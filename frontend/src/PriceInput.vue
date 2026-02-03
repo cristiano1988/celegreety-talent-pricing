@@ -14,23 +14,48 @@ const emit = defineEmits<{
     (e: 'update:modelValue', value: number | null): void
 }>()
 
+const MAX_PRICE_EUR = 1000000;
+
 const displayValue = computed({
     get() {
         if (props.modelValue == null) return ''
         return currency(props.modelValue, { fromCents: true }).toString()
     },
     set(value: string) {
-        const normalized = value.replace(',', '.')
-        const parsed = Number(normalized)
+        // Only allow digits and at most one dot/comma, with max 2 decimals
+        const cleaned = value.replace(',', '.')
+        if (cleaned !== '' && !/^\d+(\.\d{0,2})?$/.test(cleaned)) {
+            return
+        }
+
+        const parsed = Number(cleaned)
 
         if (isNaN(parsed) || parsed <= 0) {
             emit('update:modelValue', null)
             return
         }
 
-        emit('update:modelValue', currency(parsed).intValue)
+        if (parsed > MAX_PRICE_EUR) {
+            // Cap it or leave invalid? Cap it to max allowed to avoid overflow.
+            emit('update:modelValue', currency(MAX_PRICE_EUR).intValue)
+            return
+        }
+
+        emit('update:modelValue', currency(cleaned).intValue)
     }
 })
+
+const onKeyDown = (event: KeyboardEvent) => {
+    // Prevent non-numeric chars except functional keys and decimal separator
+    const isControlKey = event.ctrlKey || event.metaKey || event.altKey;
+    const isAllowedModifier = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter'].includes(event.key);
+    const isNumber = /^\d$/.test(event.key);
+    const isSeparator = event.key === '.' || event.key === ',';
+
+    if (!isNumber && !isSeparator && !isAllowedModifier && !isControlKey) {
+        event.preventDefault();
+    }
+};
 </script>
 
 <template>
@@ -46,6 +71,7 @@ const displayValue = computed({
                 class="input input-bordered w-full"
                 :class="{ 'input-error': modelValue === null }"
                 v-model="displayValue"
+                @keydown="onKeyDown"
                 placeholder="0.00"
             />
         </div>

@@ -38,9 +38,17 @@ public class UpdateTalentPricingHandler
 
         var currentPricing = current.Current;
 
-        // 2. Archive old Stripe prices
-        await _stripe.ArchivePriceAsync(currentPricing.StripePersonalPriceId);
-        await _stripe.ArchivePriceAsync(currentPricing.StripeBusinessPriceId);
+        // 2. Archive old Stripe prices (Cleanup task - failure should not block update)
+        try 
+        {
+            await _stripe.ArchivePriceAsync(currentPricing.StripePersonalPriceId);
+            await _stripe.ArchivePriceAsync(currentPricing.StripeBusinessPriceId);
+        }
+        catch (Exception)
+        {
+            // Log error here (e.g. via ILogger) but proceed.
+            // Failure to archive an old price is not a critical business failure.
+        }
 
         string? newPersonalPriceId = null;
         string? newBusinessPriceId = null;
