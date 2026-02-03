@@ -50,14 +50,35 @@ async function handleSubmit(payload: {
             </ul>
         </div>
 
-        <PricingForm
-            :personalPrice="pricing?.personalPrice ?? null"
-            :businessPrice="pricing?.businessPrice ?? null"
-            :loading="loading"
-            :showChangeReason="hasExistingPricing"
-            @submit="handleSubmit"
-        />
+        <transition name="fade">
+            <PricingForm
+                :personalPrice="pricing?.personalPrice ?? null"
+                :businessPrice="pricing?.businessPrice ?? null"
+                :loading="loading"
+                :showChangeReason="hasExistingPricing"
+                @submit="handleSubmit"
+            />
+        </transition>
 
-        <PricingHistoryList :history="history" />
+        <transition name="slide-up">
+            <PricingHistoryList v-if="history.length > 0" :history="history" />
+        </transition>
     </div>
 </template>
+
+<style scoped>
+.fade-enter-active, .fade-leave-active {
+    transition: opacity 0.3s ease;
+}
+.fade-enter-from, .fade-leave-to {
+    opacity: 0;
+}
+
+.slide-up-enter-active, .slide-up-leave-active {
+    transition: all 0.4s ease-out;
+}
+.slide-up-enter-from {
+    transform: translateY(20px);
+    opacity: 0;
+}
+</style>
