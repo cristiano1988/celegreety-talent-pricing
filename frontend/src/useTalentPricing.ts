@@ -1,5 +1,6 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import axios, { AxiosError } from 'axios'
+import { AxiosError } from 'axios'
+import api from './api'
 
 export interface Pricing {
     talentId: number
@@ -37,7 +38,7 @@ export function useTalentPricing(talentId: number) {
         error.value = null
 
         try {
-            const { data } = await axios.get<PricingWithHistory>(`/api/talentpricing/${talentId}`)
+            const { data } = await api.get<PricingWithHistory>(`/talentpricing/${talentId}`)
             pricing.value = data.current
             history.value = data.history
         } catch (e: unknown) {
@@ -57,7 +58,7 @@ export function useTalentPricing(talentId: number) {
         error.value = null
 
         try {
-            await axios.post('/api/talentpricing', {
+            await api.post('/talentpricing', {
                 talentId,
                 personalPrice: payload.personalPrice,
                 businessPrice: payload.businessPrice,
@@ -82,7 +83,7 @@ export function useTalentPricing(talentId: number) {
         if (!pricing.value) return
 
         try {
-            await axios.put('/api/talentpricing', {
+            await api.put('/talentpricing', {
                 talentId,
                 personalPrice: payload.personalPrice,
                 businessPrice: payload.businessPrice,

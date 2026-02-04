@@ -38,6 +38,8 @@ public class TalentPricingRepository : ITalentPricingRepository
 
     public async Task<int> UpsertWithHistoryAsync(TalentPricingDto pricing, string? changeReason = null, int? expectedVersion = null)
     {
+        if (_db.State != ConnectionState.Open) await ((NpgsqlConnection)_db).OpenAsync();
+        
         var parameters = new DynamicParameters();
         parameters.Add("p_talent_id", pricing.TalentId);
         parameters.Add("p_stripe_product_id", pricing.StripeProductId);
@@ -82,9 +84,11 @@ public class TalentPricingRepository : ITalentPricingRepository
 
     public async Task<TalentPricingWithHistoryDto?> GetTalentPricingWithHistoryAsync(int talentId, int limit = 10)
     {
+        if (_db.State != ConnectionState.Open) await ((NpgsqlConnection)_db).OpenAsync();
+
         var parameters = new DynamicParameters();
         parameters.Add("p_talent_id", talentId);
-        parameters.Add("p_limit", limit);
+        // parameters.Add("p_limit", limit); // Removed as 'limit' parameter is no longer in the signature
 
         var lookup = new Dictionary<int, TalentPricingWithHistoryDto>();
 

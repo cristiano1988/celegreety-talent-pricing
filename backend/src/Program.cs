@@ -5,8 +5,19 @@ using Services;
 using Npgsql;
 using FluentValidation;
 using Stripe;
+using Microsoft.Extensions.Options;
+using Common.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// CORS
+builder.Services.AddCors(options => {
+    options.AddPolicy("AllowAll",
+        policy => policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+});
+
+// Options
+builder.Services.Configure<StripeSettings>(builder.Configuration.GetSection(StripeSettings.SectionName));
 
 // Add services to the container.
 builder.Services.AddControllers();
@@ -19,8 +30,10 @@ builder.Services.AddScoped<IDbConnection>(sp =>
 
 // Repositories & Services
 builder.Services.AddScoped<ITalentPricingRepository, TalentPricingRepository>();
-builder.Services.AddScoped<IStripeClient>(sp => 
-    new StripeClient(builder.Configuration["Stripe:SecretKey"]));
+builder.Services.AddScoped<IStripeClient>(sp => {
+    var settings = sp.GetRequiredService<IOptions<StripeSettings>>().Value;
+    return new StripeClient(settings.SecretKey);
+});
 builder.Services.AddScoped<IStripeService, StripeService>();
 
 // MediatR
@@ -35,6 +48,7 @@ builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+app.UseCors("AllowAll");
 app.UseMiddleware<Common.Middleware.ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())
