@@ -18,4 +18,7 @@ public interface ITalentPricingRepository
     Task<TalentPricingWithHistoryDto?> GetTalentPricingWithHistoryAsync(
         int talentId,
         int limit = 10);
+
+    Task<TalentPricingDto?> GetTalentProfileAsync(int talentId);
+    Task<bool> TalentExistsAsync(int talentId);
 }

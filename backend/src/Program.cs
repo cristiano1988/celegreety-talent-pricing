@@ -19,6 +19,9 @@ builder.Services.AddCors(options => {
 // Options
 builder.Services.Configure<StripeSettings>(builder.Configuration.GetSection(StripeSettings.SectionName));
 
+// Dapper Mapping
+Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
+
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

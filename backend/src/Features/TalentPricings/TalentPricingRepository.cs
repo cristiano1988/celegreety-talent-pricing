@@ -119,4 +119,23 @@ public class TalentPricingRepository : ITalentPricingRepository
 
         return lookup.Values.FirstOrDefault();
     }
+
+    public async Task<TalentPricingDto?> GetTalentProfileAsync(int talentId)
+    {
+        if (_db.State != ConnectionState.Open) await ((NpgsqlConnection)_db).OpenAsync();
+        return await _db.QueryFirstOrDefaultAsync<TalentPricingDto>(
+            "SELECT talent_id as TalentId, stripe_product_id as StripeProductId, personal_price as PersonalPrice, business_price as BusinessPrice, stripe_personal_price_id as StripePersonalPriceId, stripe_business_price_id as StripeBusinessPriceId FROM talent_profiles WHERE talent_id = @talentId",
+            new { talentId }
+        );
+    }
+
+    public async Task<bool> TalentExistsAsync(int talentId)
+    {
+        if (_db.State != ConnectionState.Open) await ((NpgsqlConnection)_db).OpenAsync();
+        // Assuming 'users' table exists since it's referenced by FK in pricing_history
+        return await _db.ExecuteScalarAsync<bool>(
+            "SELECT EXISTS(SELECT 1 FROM public.users WHERE id = @talentId)",
+            new { talentId }
+        );
+    }
 }

@@ -31,6 +31,18 @@ public class CreateTalentPricingHandler : IRequestHandler<CreateTalentPricingCom
         if (request.BusinessPrice < request.PersonalPrice)
             throw new ArgumentException("Business price must be greater than or equal to personal price.");
 
+        // 0. Existence & Idempotency Check
+        _logger.LogInformation("Verifying talent {TalentId} existence", request.TalentId);
+        if (!await _repository.TalentExistsAsync(request.TalentId))
+            throw new InvalidOperationException($"Talent with ID {request.TalentId} does not exist.");
+
+        var existingProfile = await _repository.GetTalentProfileAsync(request.TalentId);
+        if (existingProfile != null && !string.IsNullOrEmpty(existingProfile.StripeProductId))
+        {
+            _logger.LogWarning("Talent {TalentId} already has a Stripe product {ProductId}. Use Update instead.", request.TalentId, existingProfile.StripeProductId);
+            throw new InvalidOperationException($"Pricing already exists for talent {request.TalentId}. Please use the Update endpoint.");
+        }
+
         string? productId = null;
         try
         {
