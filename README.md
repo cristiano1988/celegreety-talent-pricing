@@ -78,7 +78,7 @@ dotnet test backend/tests/TalentPricing.UnitTests
 ```
 
 ### API Testing
-A Postman collection is provided in the `docs/` folder for end-to-end API testing.
+A Postman collection is provided in the `api/` folder for end-to-end API testing.
 
 ---
 
