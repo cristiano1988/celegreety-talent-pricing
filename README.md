@@ -92,4 +92,4 @@ A Postman collection is provided in the `docs/` folder for end-to-end API testin
 ---
 
 ## Contact
-**Candidate**: [Your Name]
+**Candidate**: Kristijan Galić
