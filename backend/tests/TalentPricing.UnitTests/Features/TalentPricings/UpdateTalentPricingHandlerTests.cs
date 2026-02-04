@@ -11,20 +11,22 @@ public class UpdateTalentPricingHandlerTests
 {
     private readonly Mock<ITalentPricingRepository> _mockRepo;
     private readonly Mock<IStripeService> _mockStripe;
+    private readonly Mock<Microsoft.Extensions.Logging.ILogger<UpdateTalentPricingHandler>> _mockLogger;
     private readonly UpdateTalentPricingHandler _handler;
 
     public UpdateTalentPricingHandlerTests()
     {
         _mockRepo = new Mock<ITalentPricingRepository>();
         _mockStripe = new Mock<IStripeService>();
-        _handler = new UpdateTalentPricingHandler(_mockRepo.Object, _mockStripe.Object);
+        _mockLogger = new Mock<Microsoft.Extensions.Logging.ILogger<UpdateTalentPricingHandler>>();
+        _handler = new UpdateTalentPricingHandler(_mockRepo.Object, _mockStripe.Object, _mockLogger.Object);
     }
 
     [Fact]
     public async Task Handle_ValidRequest_ArchivesOldAndCreatesNewPrices()
     {
         // Arrange
-        var command = new UpdateTalentPricingCommand(123, 6000, 12000, "Inflation");
+        var command = new UpdateTalentPricingCommand(123, 6000, 12000, "Inflation", 1);
         var currentPricing = new TalentPricingWithHistoryDto
         {
             Current = new TalentPricingDto
@@ -57,30 +59,19 @@ public class UpdateTalentPricingHandlerTests
         _mockStripe.Verify(s => s.ArchivePriceAsync("price_old_p"), Times.Once);
         _mockStripe.Verify(s => s.ArchivePriceAsync("price_old_b"), Times.Once);
 
-        // 2. Check DB update
-        _mockRepo.Verify(r => r.UpsertTalentPricingAsync(It.Is<TalentPricingDto>(dto =>
+        // 2. Check atomic update
+        _mockRepo.Verify(r => r.UpsertWithHistoryAsync(It.Is<TalentPricingDto>(dto =>
             dto.StripeProductId == "prod_123" &&
             dto.PersonalPrice == 6000 &&
             dto.StripePersonalPriceId == newPersonalPriceId
-        )), Times.Once);
-
-        // 3. Check history insert
-        _mockRepo.Verify(r => r.InsertPricingHistoryAsync(
-            123,
-            6000,
-            12000,
-            "prod_123",
-            newPersonalPriceId,
-            newBusinessPriceId,
-            "Inflation"
-        ), Times.Once);
+        ), command.ChangeReason, command.Version), Times.Once);
     }
 
     [Fact]
     public async Task Handle_BusinessPriceLowerThanPersonal_ThrowsException()
     {
         // Arrange
-        var command = new UpdateTalentPricingCommand(123, 5000, 4000, "Error");
+        var command = new UpdateTalentPricingCommand(123, 5000, 4000, "Error", 1); // Business < Personal
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(() => _handler.Handle(command, CancellationToken.None));
@@ -90,7 +81,7 @@ public class UpdateTalentPricingHandlerTests
     public async Task Handle_PricingDoesNotExist_ThrowsException()
     {
         // Arrange
-        var command = new UpdateTalentPricingCommand(999, 5000, 10000, "New");
+        var command = new UpdateTalentPricingCommand(999, 5000, 10000, "New", 1);
         _mockRepo.Setup(r => r.GetTalentPricingWithHistoryAsync(999, It.IsAny<int>()))
             .ReturnsAsync((TalentPricingWithHistoryDto?)null);
 

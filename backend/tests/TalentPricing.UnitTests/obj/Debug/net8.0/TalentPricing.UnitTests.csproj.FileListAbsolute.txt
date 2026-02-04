@@ -125,3 +125,9 @@ D:\Celegreety\celegreety-talent-pricing\backend\tests\TalentPricing.UnitTests\ob
 D:\Celegreety\celegreety-talent-pricing\backend\tests\TalentPricing.UnitTests\obj\Debug\net8.0\TalentPricing.UnitTests.pdb
 D:\Celegreety\celegreety-talent-pricing\backend\tests\TalentPricing.UnitTests\obj\Debug\net8.0\TalentPricing.UnitTests.genruntimeconfig.cache
 D:\Celegreety\celegreety-talent-pricing\backend\tests\TalentPricing.UnitTests\obj\Debug\net8.0\ref\TalentPricing.UnitTests.dll
+D:\Celegreety\celegreety-talent-pricing\backend\tests\TalentPricing.UnitTests\obj\Debug\net8.0\TalentPricing.UnitTests.sourcelink.json
+D:\Celegreety\celegreety-talent-pricing\backend\tests\TalentPricing.UnitTests\bin\Debug\net8.0\appsettings.Example.json
+D:\Celegreety\celegreety-talent-pricing\backend\tests\TalentPricing.UnitTests\bin\Debug\net8.0\FluentValidation.dll
+D:\Celegreety\celegreety-talent-pricing\backend\tests\TalentPricing.UnitTests\bin\Debug\net8.0\FluentValidation.DependencyInjectionExtensions.dll
+D:\Celegreety\celegreety-talent-pricing\backend\tests\TalentPricing.UnitTests\bin\Debug\net8.0\Polly.dll
+D:\Celegreety\celegreety-talent-pricing\backend\tests\TalentPricing.UnitTests\bin\Debug\net8.0\Polly.Core.dll

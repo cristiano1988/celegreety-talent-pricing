@@ -54,6 +54,10 @@
               "target": "Package",
               "version": "[2.1.28, )"
             },
+            "FluentValidation.DependencyInjectionExtensions": {
+              "target": "Package",
+              "version": "[12.1.1, )"
+            },
             "MediatR": {
               "target": "Package",
               "version": "[12.2.0, )"
@@ -61,6 +65,10 @@
             "Npgsql": {
               "target": "Package",
               "version": "[8.0.2, )"
+            },
+            "Polly": {
+              "target": "Package",
+              "version": "[8.6.5, )"
             },
             "Stripe.net": {
               "target": "Package",

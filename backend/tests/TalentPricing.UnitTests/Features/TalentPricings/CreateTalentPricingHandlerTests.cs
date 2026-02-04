@@ -11,13 +11,15 @@ public class CreateTalentPricingHandlerTests
 {
     private readonly Mock<ITalentPricingRepository> _mockRepo;
     private readonly Mock<IStripeService> _mockStripe;
+    private readonly Mock<Microsoft.Extensions.Logging.ILogger<CreateTalentPricingHandler>> _mockLogger;
     private readonly CreateTalentPricingHandler _handler;
 
     public CreateTalentPricingHandlerTests()
     {
         _mockRepo = new Mock<ITalentPricingRepository>();
         _mockStripe = new Mock<IStripeService>();
-        _handler = new CreateTalentPricingHandler(_mockRepo.Object, _mockStripe.Object);
+        _mockLogger = new Mock<Microsoft.Extensions.Logging.ILogger<CreateTalentPricingHandler>>();
+        _handler = new CreateTalentPricingHandler(_mockRepo.Object, _mockStripe.Object, _mockLogger.Object);
     }
 
     [Fact]
@@ -28,6 +30,9 @@ public class CreateTalentPricingHandlerTests
         var productId = "prod_123";
         var personalPriceId = "price_p1";
         var businessPriceId = "price_b1";
+
+        _mockRepo.Setup(r => r.TalentExistsAsync(command.TalentId)).ReturnsAsync(true);
+        _mockRepo.Setup(r => r.GetTalentProfileAsync(command.TalentId)).ReturnsAsync((TalentPricingDto?)null);
 
         _mockStripe.Setup(s => s.CreateProductAsync(command.TalentId, It.IsAny<string>()))
             .ReturnsAsync(productId);
@@ -45,21 +50,11 @@ public class CreateTalentPricingHandlerTests
         Assert.Equal(businessPriceId, result.StripeBusinessPriceId);
         
         // Verify DB calls
-        _mockRepo.Verify(r => r.UpsertTalentPricingAsync(It.Is<TalentPricingDto>(dto => 
+        _mockRepo.Verify(r => r.UpsertWithHistoryAsync(It.Is<TalentPricingDto>(dto => 
             dto.StripeProductId == productId &&
             dto.PersonalPrice == command.PersonalPrice &&
             dto.BusinessPrice == command.BusinessPrice
-        )), Times.Once);
-
-        _mockRepo.Verify(r => r.InsertPricingHistoryAsync(
-            command.TalentId,
-            command.PersonalPrice,
-            command.BusinessPrice,
-            productId,
-            personalPriceId,
-            businessPriceId,
-            It.IsAny<string>()
-        ), Times.Once);
+        ), It.IsAny<string>(), It.IsAny<int?>()), Times.Once);
     }
 
     [Fact]
@@ -73,6 +68,29 @@ public class CreateTalentPricingHandlerTests
         
         // Verify no interactions
         _mockStripe.Verify(s => s.CreateProductAsync(It.IsAny<int>(), It.IsAny<string>()), Times.Never);
-        _mockRepo.Verify(r => r.UpsertTalentPricingAsync(It.IsAny<TalentPricingDto>()), Times.Never);
+        _mockRepo.Verify(r => r.UpsertWithHistoryAsync(It.IsAny<TalentPricingDto>(), It.IsAny<string>(), It.IsAny<int?>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_TalentDoesNotExist_ThrowsException()
+    {
+        // Arrange
+        var command = new CreateTalentPricingCommand(123, 5000, 10000, "EUR");
+        _mockRepo.Setup(r => r.TalentExistsAsync(123)).ReturnsAsync(false);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _handler.Handle(command, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Handle_PricingAlreadyExists_ThrowsException()
+    {
+        // Arrange
+        var command = new CreateTalentPricingCommand(123, 5000, 10000, "EUR");
+        _mockRepo.Setup(r => r.TalentExistsAsync(123)).ReturnsAsync(true);
+        _mockRepo.Setup(r => r.GetTalentProfileAsync(123)).ReturnsAsync(new TalentPricingDto { StripeProductId = "prod_already_exists" });
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _handler.Handle(command, CancellationToken.None));
     }
 }

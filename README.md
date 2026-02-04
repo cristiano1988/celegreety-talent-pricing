@@ -4,11 +4,13 @@
 This project implements a robust full-stack solution for managing talent pricing (Personal & Business) with seamless **Stripe Integration**. It is designed to be scalable, maintainable, and easy to audit.
 
 ### Key Features
-- **Dynamic Pricing**: Support for separate Personal and Business pricing tiers.
-- **Stripe Synchronization**: Automatic creation and updating of Stripe Products and Prices.
-- **Audit Logging**: Full history tracking of all price changes (`pricing_history`).
-- **Validation**: Enforces business rules (e.g., Business Price >= Personal Price).
-- **Modern UI**: Responsive Vue 3 frontend with real-time feedback.
+- **Dynamic Pricing**: Separate Personal and Business pricing tiers.
+- **Stripe Synchronization**: Automatic creation and updating of Stripe Products and Prices with thread-safe client management.
+- **Atomic Operations**: Composite PostgreSQL functions ensure that DB updates and history logging happen in a single transaction.
+- **Idempotency & Safety**: Prevents duplicate Stripe products and verifies talent existence before external calls.
+- **Robust Update Flow**: Reordered operations (Create -> Update DB -> Archive) to ensure business continuity if cleanup tasks fail.
+- **Audit Logging**: Full immutable history tracking of all price changes (`pricing_history`).
+- **Modern UI**: Responsive Vue 3 frontend with transitions, real-time history display, and "Last Synced" info.
 
 ---
 
@@ -18,9 +20,10 @@ The solution follows **Clean Architecture** principles to ensure separation of c
 
 ### Backend (.NET 8)
 - **Pattern**: CQRS with MediatR.
-- **Data Access**: Dapper for high-performance SQL execution.
-- **Database**: PostgreSQL with logic encapsulated in Stored Functions for integrity.
-- **Integration**: Strong-typed Stripe Service layer.
+- **Data Access**: Dapper with snake_case mapping enabled.
+- **Database**: PostgreSQL with logic encapsulated in Stored Functions (5 migrations included).
+- **Security**: CORS policy configured and environment-safe Options Pattern for configuration.
+- **Resilience**: Polly retry policies for Stripe API interactions.
 
 ### Frontend (Vue 3)
 - **Framework**: Vue 3 (Composition API) + TypeScript.
@@ -49,25 +52,15 @@ The application will be available at:
 
 ### Manual Setup
 
-#### 1. Database
-Ensure PostgreSQL is running and update the connection string in `appsettings.json`.
-Run the migration script located at:
-`database/migrations/001_pricing.sql`
+#### 1. Configuration
+Copy `backend/src/appsettings.Example.json` to `backend/src/appsettings.json` and fill in your Stripe Secret Key and Connection String.
 
-#### 2. Backend
-Configure your Stripe keys in `backend/src/appsettings.json`:
-```json
-"Stripe": {
-  "SecretKey": "sk_test_..."
-}
-```
-Run the API:
-```bash
-cd backend/src
-dotnet run
-```
+#### 2. Database
+Run all migrations in order from `database/migrations/*.sql`. The system now includes 5 critical migrations.
 
 #### 3. Frontend
+Create a `.env` file in `frontend/` if you need to point to a custom API URL:
+`VITE_API_URL=http://localhost:5000/api`
 ```bash
 cd frontend
 npm install
