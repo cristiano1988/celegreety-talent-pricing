@@ -19,10 +19,12 @@ dotnet test backend/tests/TalentPricing.UnitTests
 ### What is Tested?
 - **CreateTalentPricingHandler**:
   - ✅ Success: Verifies Stripe Product/Price creation and Database insertion.
-  - ❌ Failure: validaties that `Business Price >= Personal Price`.
+  - ✅ Idempotency: Verifies it prevents duplicate Stripe products for the same talent.
+  - ✅ Existence: Verifies it checks if the Talent (User) exists in the database.
+  - ❌ Failure: Validates that `Business Price >= Personal Price`.
 - **UpdateTalentPricingHandler**:
-  - ✅ Success: Verifies old prices are archived, new prices are created, and history is logged.
-  - ❌ Failure: Validates business rules and throws error if pricing does not exist.
+  - ✅ Success: Verifies atomic updates (New Price -> DB Update -> Archive Old).
+  - ❌ Failure: Validates business rules, optimistic concurrency (version), and existence.
 
 ---
 
@@ -38,7 +40,7 @@ We provide a **Postman Collection** to test the end-to-end flow including the Da
 ### Setup
 1.  Open Postman.
 2.  Click **Import**.
-3.  Select the file: `docs/TalentPricing.postman_collection.json`.
+3.  Select the file: `api/TalentPricing.postman_collection.json`.
 
 ### Test Scenarios
 
