@@ -95,6 +95,21 @@ To help you navigate the codebase, here are some project-specific terms explaine
 
 ---
 
+## 🗄 Database Migrations Reference
+
+The system database evolves through numbered SQL migrations. Here is a breakdown of what each file does:
+
+| File | Purpose | Key Changes |
+| :--- | :--- | :--- |
+| **000_base_schema.sql** | Initial Setup | Creates `users` and `talent_profiles`; seeds Test Talent (ID 123). |
+| **001_pricing.sql** | Core Pricing Logic | Adds Stripe columns; creates `pricing_history` table; adds Upsert functions. |
+| **002_add_versioning.sql** | Data Safety | Adds `version` column for **Optimistic Concurrency** (prevents double-updates). |
+| **003_composite_upsert.sql** | Transaction Safety | Creates a "Composite" function to update prices AND history in one atomic step. |
+| **004_unique_constraint.sql** | Integrity | Ensures one talent cannot have multiple pricing profiles. |
+| **005_refine_get_function.sql** | Bug Fix/Stability | Filters out incomplete profiles to prevent backend mapping crashes. |
+
+---
+
 ## 🧪 Verification Results
 
 We verified the system with a live test for **Talent 123** (Test Star):
