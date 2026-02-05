@@ -12,6 +12,10 @@ This project implements a robust full-stack solution for managing talent pricing
 - **Audit Logging**: Full immutable history tracking of all price changes (`pricing_history`).
 - **Modern UI**: Responsive Vue 3 frontend with transitions, real-time history display, and "Last Synced" info.
 
+> [!NOTE]
+> **New to the project?** Check out our [Project Walkthrough](file:///C:/Users/krist/.gemini/antigravity/brain/e08f5421-b696-4a49-8b57-8161da53083e/walkthrough.md) for a deep dive into the architecture, a beginner's glossary, and visual diagrams.
+
+
 ---
 
 ## 🏗 Architecture
@@ -29,6 +33,17 @@ The solution follows **Clean Architecture** principles to ensure separation of c
 - **Framework**: Vue 3 (Composition API) + TypeScript.
 - **Styling**: TailwindCSS + DaisyUI.
 - **State**: Composable-based state management (`useTalentPricing`).
+
+### 📊 Data Flow Diagram
+
+```mermaid
+graph LR
+    A[Frontend UI] -->|Update Price| B[.NET API]
+    B -->|Sync| C[Stripe API]
+    B -->|Persist| D[PostgreSQL]
+    D -->|Track| E[History Table]
+```
+
 
 ---
 
