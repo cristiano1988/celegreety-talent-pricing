@@ -30,9 +30,8 @@ public class TalentPricingRepository : ITalentPricingRepository
         parameters.Add("p_expected_version", expectedVersion);
 
         return await _db.ExecuteScalarAsync<int>(
-            "fn_upsert_talent_pricing",
-            parameters,
-            commandType: CommandType.StoredProcedure
+            "SELECT fn_upsert_talent_pricing(@p_talent_id, @p_stripe_product_id, @p_personal_price, @p_business_price, @p_stripe_personal_price_id, @p_stripe_business_price_id, @p_expected_version)",
+            parameters
         );
     }
 
@@ -51,9 +50,8 @@ public class TalentPricingRepository : ITalentPricingRepository
         parameters.Add("p_expected_version", expectedVersion);
 
         return await _db.ExecuteScalarAsync<int>(
-            "fn_upsert_talent_pricing_with_history",
-            parameters,
-            commandType: CommandType.StoredProcedure
+            "SELECT fn_upsert_talent_pricing_with_history(@p_talent_id, @p_stripe_product_id, @p_personal_price, @p_business_price, @p_stripe_personal_price_id, @p_stripe_business_price_id, @p_change_reason, @p_expected_version)",
+            parameters
         );
     }
 
@@ -76,9 +74,8 @@ public class TalentPricingRepository : ITalentPricingRepository
         parameters.Add("p_change_reason", changeReason);
 
         await _db.ExecuteAsync(
-            "fn_insert_pricing_history",
-            parameters,
-            commandType: CommandType.StoredProcedure
+            "SELECT fn_insert_pricing_history(@p_talent_id, @p_personal_price, @p_business_price, @p_stripe_product_id, @p_stripe_personal_price_id, @p_stripe_business_price_id, @p_change_reason)",
+            parameters
         );
     }
 
@@ -93,7 +90,7 @@ public class TalentPricingRepository : ITalentPricingRepository
         var lookup = new Dictionary<int, TalentPricingWithHistoryDto>();
 
         var result = await _db.QueryAsync<TalentPricingDto, PricingHistoryDto, TalentPricingWithHistoryDto>(
-            sql: "fn_get_talent_pricing_with_history",
+            sql: "SELECT * FROM fn_get_talent_pricing_with_history(@p_talent_id)",
             map: (current, history) =>
             {
                 if (!lookup.TryGetValue(current.TalentId, out var dto))
@@ -105,7 +102,9 @@ public class TalentPricingRepository : ITalentPricingRepository
                     lookup.Add(current.TalentId, dto);
                 }
 
-                if (history != null)
+                // If LEFT JOIN returns no history, history object will be non-null but with default values (year 0001)
+                // We skip adding such objects to the history list.
+                if (history != null && history.CreatedAt != default)
                 {
                     dto.History.Add(history);
                 }
@@ -113,8 +112,7 @@ public class TalentPricingRepository : ITalentPricingRepository
                 return dto;
             },
             param: parameters,
-            splitOn: "history_personal_price",
-            commandType: CommandType.StoredProcedure
+            splitOn: "PersonalPrice"
         );
 
         return lookup.Values.FirstOrDefault();
@@ -124,7 +122,7 @@ public class TalentPricingRepository : ITalentPricingRepository
     {
         if (_db.State != ConnectionState.Open) await ((NpgsqlConnection)_db).OpenAsync();
         return await _db.QueryFirstOrDefaultAsync<TalentPricingDto>(
-            "SELECT talent_id as TalentId, stripe_product_id as StripeProductId, personal_price as PersonalPrice, business_price as BusinessPrice, stripe_personal_price_id as StripePersonalPriceId, stripe_business_price_id as StripeBusinessPriceId FROM talent_profiles WHERE talent_id = @talentId",
+            "SELECT talent_id as TalentId, stage_name as StageName, stripe_product_id as StripeProductId, personal_price as PersonalPrice, business_price as BusinessPrice, stripe_personal_price_id as StripePersonalPriceId, stripe_business_price_id as StripeBusinessPriceId, version FROM talent_profiles WHERE talent_id = @talentId",
             new { talentId }
         );
     }

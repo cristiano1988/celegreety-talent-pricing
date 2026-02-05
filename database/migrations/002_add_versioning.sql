@@ -92,6 +92,7 @@ END;
 $$;
 
 -- 3. UPDATE GET FUNCTION TO RETURN VERSION
+DROP FUNCTION IF EXISTS fn_get_talent_pricing_with_history(INT, INT);
 CREATE OR REPLACE FUNCTION fn_get_talent_pricing_with_history(
     p_talent_id INT,
     p_limit INT DEFAULT 10

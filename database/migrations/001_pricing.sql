@@ -17,13 +17,29 @@
 -- - Stripe Product and Price IDs
 -- - Synchronization metadata
 ALTER TABLE talent_profiles 
-DROP COLUMN IF EXISTS price,
 ADD COLUMN IF NOT EXISTS stripe_product_id VARCHAR(50),
 ADD COLUMN IF NOT EXISTS personal_price INT,
 ADD COLUMN IF NOT EXISTS business_price INT,
 ADD COLUMN IF NOT EXISTS stripe_personal_price_id VARCHAR(50),
 ADD COLUMN IF NOT EXISTS stripe_business_price_id VARCHAR(50),
 ADD COLUMN IF NOT EXISTS prices_last_synced_at TIMESTAMPTZ;
+
+-- Relax constraints to support pricing-only updates
+ALTER TABLE talent_profiles 
+ALTER COLUMN stage_name DROP NOT NULL,
+ALTER COLUMN picture DROP NOT NULL,
+ALTER COLUMN slug DROP NOT NULL,
+ALTER COLUMN description DROP NOT NULL;
+
+-- Migrate legacy price data if it exists
+UPDATE talent_profiles 
+SET personal_price = price,
+    business_price = price
+WHERE price IS NOT NULL;
+
+-- Now safe to drop legacy column
+ALTER TABLE talent_profiles 
+DROP COLUMN IF EXISTS price;
 
 -- ============================================================================
 -- 2. CREATE PRICING_HISTORY TABLE

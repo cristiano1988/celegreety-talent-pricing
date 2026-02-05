@@ -3,6 +3,7 @@ namespace Features.TalentPricings.Models;
 public class TalentPricingDto
 {
     public int TalentId { get; set; }
+    public string? StageName { get; set; }
     public string StripeProductId { get; set; } = default!;
     public int PersonalPrice { get; set; }
     public int BusinessPrice { get; set; }

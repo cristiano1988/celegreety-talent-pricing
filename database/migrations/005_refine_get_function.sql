@@ -10,37 +10,42 @@
  * Date: 2026-02-04
  */
 
+DROP FUNCTION IF EXISTS fn_get_talent_pricing_with_history(INT, INT);
 CREATE OR REPLACE FUNCTION fn_get_talent_pricing_with_history(
     p_talent_id INT,
     p_limit INT DEFAULT 10
 )
 RETURNS TABLE (
     talent_id INT,
+    stage_name VARCHAR,
     stripe_product_id VARCHAR,
     personal_price INT,
     business_price INT,
     stripe_personal_price_id VARCHAR,
     stripe_business_price_id VARCHAR,
     prices_last_synced_at timestamptz,
-    history_personal_price INT,
-    history_business_price INT,
-    history_change_reason VARCHAR,
-    history_created_at timestamptz
+    version INT,
+    PersonalPrice INT,
+    BusinessPrice INT,
+    ChangeReason VARCHAR,
+    CreatedAt timestamptz
 )
 LANGUAGE sql
 AS $$
     SELECT
         tp.talent_id,
+        tp.stage_name,
         tp.stripe_product_id,
         tp.personal_price,
         tp.business_price,
         tp.stripe_personal_price_id,
         tp.stripe_business_price_id,
         tp.prices_last_synced_at,
-        ph.personal_price AS history_personal_price,
-        ph.business_price AS history_business_price,
-        ph.change_reason AS history_change_reason,
-        ph.created_at AS history_created_at
+        tp.version,
+        ph.personal_price AS PersonalPrice,
+        ph.business_price AS BusinessPrice,
+        ph.change_reason AS ChangeReason,
+        ph.created_at AS CreatedAt
     FROM talent_profiles tp
     LEFT JOIN pricing_history ph
         ON ph.talent_id = tp.talent_id

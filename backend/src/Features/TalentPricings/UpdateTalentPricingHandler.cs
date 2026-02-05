@@ -40,34 +40,47 @@ public class UpdateTalentPricingHandler
             throw new InvalidOperationException("Pricing does not exist");
 
         var currentPricing = current.Current;
+        var productId = currentPricing.StripeProductId;
 
         string? newPersonalPriceId = null;
         string? newBusinessPriceId = null;
 
         try
         {
-            // 2. Create new Stripe prices
-            _logger.LogInformation("Creating new Stripe prices for product {ProductId}", currentPricing.StripeProductId);
+            // 2. Ensure Stripe Product exists (for legacy talents)
+            if (string.IsNullOrEmpty(productId))
+            {
+                _logger.LogInformation("Stripe Product ID missing for talent {TalentId}. Creating new product.", request.TalentId);
+                var profile = await _repository.GetTalentProfileAsync(request.TalentId);
+                productId = await _stripe.CreateProductAsync(
+                    request.TalentId, 
+                    profile?.StageName ?? $"Talent {request.TalentId}"
+                );
+                _logger.LogInformation("New Stripe product created: {ProductId}", productId);
+            }
+
+            // 3. Create new Stripe prices
+            _logger.LogInformation("Creating new Stripe prices for product {ProductId}", productId);
             newPersonalPriceId = await _stripe.CreatePriceAsync(
-                currentPricing.StripeProductId,
+                productId,
                 request.PersonalPrice,
                 request.Currency,
                 "personal");
 
 
             newBusinessPriceId = await _stripe.CreatePriceAsync(
-                currentPricing.StripeProductId,
+                productId,
                 request.BusinessPrice,
                 request.Currency,
                 "business");
             _logger.LogInformation("New Stripe prices created: {PersonalPriceId}, {BusinessPriceId}", newPersonalPriceId, newBusinessPriceId);
 
 
-            // 3. Update DB
+            // 4. Update DB
             var updated = new TalentPricingDto
             {
                 TalentId = request.TalentId,
-                StripeProductId = currentPricing.StripeProductId,
+                StripeProductId = productId,
                 PersonalPrice = request.PersonalPrice,
                 BusinessPrice = request.BusinessPrice,
                 StripePersonalPriceId = newPersonalPriceId,
