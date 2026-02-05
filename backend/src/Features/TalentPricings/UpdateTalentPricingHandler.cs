@@ -6,7 +6,7 @@ using Services;
 namespace Features.TalentPricings.Commands;
 
 public class UpdateTalentPricingHandler
-    : IRequestHandler<UpdateTalentPricingCommand>
+    : IRequestHandler<UpdateTalentPricingCommand, Unit>
 {
     private readonly ITalentPricingRepository _repository;
     private readonly IStripeService _stripe;
@@ -24,7 +24,7 @@ public class UpdateTalentPricingHandler
     }
 
 
-    public async Task Handle(
+    public async Task<Unit> Handle(
         UpdateTalentPricingCommand request,
         CancellationToken cancellationToken)
     {
@@ -122,5 +122,7 @@ public class UpdateTalentPricingHandler
             
             throw;
         }
+
+        return Unit.Value;
     }
 }

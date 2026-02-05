@@ -14,7 +14,7 @@ const emit = defineEmits<{
     (e: 'update:modelValue', value: number | null): void
 }>()
 
-const MAX_PRICE_EUR = 999999.99;
+
 
 const displayValue = computed({
     get() {
@@ -32,12 +32,6 @@ const displayValue = computed({
 
         if (isNaN(parsed) || parsed <= 0) {
             emit('update:modelValue', null)
-            return
-        }
-
-        if (parsed > MAX_PRICE_EUR) {
-            // Cap it or leave invalid? Cap it to max allowed to avoid overflow.
-            emit('update:modelValue', currency(MAX_PRICE_EUR).intValue)
             return
         }
 

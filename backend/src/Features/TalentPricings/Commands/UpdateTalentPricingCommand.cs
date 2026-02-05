@@ -9,4 +9,4 @@ public record UpdateTalentPricingCommand(
     string? ChangeReason,
     int Version,
     string Currency = "EUR"
-) : IRequest;
+) : IRequest<Unit>;
