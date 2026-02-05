@@ -65,6 +65,10 @@ changeReason: props.showChangeReason ? changeReason.value : undefined
         Business price must be greater or equal to personal price
         </div>
 
+        <div v-if="(personal && personal > 99999999) || (business && business > 99999999)" class="alert alert-error">
+        Price cannot exceed €999,999.99 (Stripe limit)
+        </div>
+
         <textarea
             v-if="showChangeReason"
             v-model="changeReason"

@@ -93,12 +93,12 @@ export function useTalentPricing(talentId: number) {
             await fetchPricing()
         } catch (e: unknown) {
             const err = e as AxiosError
-            const data = err.response?.data as { error?: string } | undefined
+            const data = err.response?.data as { error?: string, details?: string[] } | undefined
 
             if (err.response?.status === 409) {
                 error.value = 'Pricing was updated by another user. Please refresh.'
-            } else if (err.response?.status === 400 && data?.error) {
-                error.value = data.error
+            } else if (err.response?.status === 400 && data) {
+                error.value = data.details?.join('. ') || data.error || 'Invalid input'
             } else {
                 error.value = 'Failed to update pricing'
             }
