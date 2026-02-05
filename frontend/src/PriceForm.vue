@@ -26,12 +26,15 @@ const personal = ref<number | null>(props.personalPrice)
 const business = ref<number | null>(props.businessPrice)
 const changeReason = ref('')
 
-watch(() => props.personalPrice, v => personal.value = v)
-watch(() => props.businessPrice, v => business.value = v)
+watch(() => props.personalPrice, (v: number | null) => personal.value = v)
+watch(() => props.businessPrice, (v: number | null) => business.value = v)
 
 const isValid = computed(() => {
     if (personal.value == null || business.value == null) return false
-    return business.value >= personal.value
+    const MAX_PRICE = 99999999 // 999,999.99 EUR
+    return business.value >= personal.value && 
+           personal.value <= MAX_PRICE && 
+           business.value <= MAX_PRICE
 })
 
 function onSubmit() {

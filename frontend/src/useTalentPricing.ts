@@ -93,12 +93,12 @@ export function useTalentPricing(talentId: number) {
             await fetchPricing()
         } catch (e: unknown) {
             const err = e as AxiosError
-            // Ideally backend returns 409, but currently it throws 500 with message. 
-            // We should check response data. assuming 500 for now based on 'throw Exception' in SQL.
-            // If backend mapped specific exception to 409, we'd check that.
-            if (err.response?.status === 500  /* || err.response?.status === 409 */) {
-                // Simple error message for now, exact matching depends on backend error serialization
+            const data = err.response?.data as { error?: string } | undefined
+
+            if (err.response?.status === 409) {
                 error.value = 'Pricing was updated by another user. Please refresh.'
+            } else if (err.response?.status === 400 && data?.error) {
+                error.value = data.error
             } else {
                 error.value = 'Failed to update pricing'
             }

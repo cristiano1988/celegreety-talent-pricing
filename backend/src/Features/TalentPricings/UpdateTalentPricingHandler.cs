@@ -31,6 +31,10 @@ public class UpdateTalentPricingHandler
         if (request.PersonalPrice <= 0 || request.BusinessPrice <= 0)
             throw new ArgumentException("Prices must be greater than zero.");
 
+        const int MAX_STRIPE_PRICE = 99999999;
+        if (request.PersonalPrice > MAX_STRIPE_PRICE || request.BusinessPrice > MAX_STRIPE_PRICE)
+            throw new ArgumentException("Price exceeds Stripe's maximum limit of 999,999.99 EUR.");
+
         if (request.BusinessPrice < request.PersonalPrice)
             throw new ArgumentException("Business price must be >= personal price");
 

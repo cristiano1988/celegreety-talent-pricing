@@ -41,6 +41,16 @@ public class ExceptionHandlingMiddleware
                 details = validationException.Errors.Select(e => e.ErrorMessage) 
             });
         }
+        else if (exception is Stripe.StripeException stripeEx)
+        {
+            code = HttpStatusCode.BadRequest;
+            result = JsonSerializer.Serialize(new { error = stripeEx.Message });
+        }
+        else if (exception is Npgsql.PostgresException pgEx && pgEx.SqlState == "P0001")
+        {
+            code = HttpStatusCode.Conflict;
+            result = JsonSerializer.Serialize(new { error = "Pricing was updated by another user. Please refresh." });
+        }
         else if (exception is ArgumentException || exception is InvalidOperationException)
         {
             code = HttpStatusCode.BadRequest;

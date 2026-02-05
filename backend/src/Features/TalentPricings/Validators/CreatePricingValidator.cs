@@ -11,14 +11,14 @@ public class CreatePricingValidator : AbstractValidator<CreateTalentPricingComma
         
         RuleFor(x => x.PersonalPrice)
             .GreaterThan(0)
-            .LessThan(2000000000)
-            .WithMessage("Personal price must be between 0.01 and 20,000,000.00 EUR");
+            .LessThan(100000000)
+            .WithMessage("Personal price must be between 0.01 and 999,999.99 EUR");
 
         RuleFor(x => x.BusinessPrice)
             .GreaterThan(0)
-            .LessThan(2000000000)
+            .LessThan(100000000)
             .GreaterThanOrEqualTo(x => x.PersonalPrice)
-            .WithMessage("Business price must be between 0.01 and 20,000,000.00 EUR and >= Personal price");
+            .WithMessage("Business price must be between 0.01 and 999,999.99 EUR and >= Personal price");
 
         RuleFor(x => x.Currency)
             .Equal("EUR")
