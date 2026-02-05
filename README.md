@@ -55,11 +55,17 @@ graph LR
 - Node.js 18+ (optional, for local dev)
 
 ### Quick Start (Docker)
-The easiest way to run the entire stack is via Docker Compose:
 
-```bash
-docker-compose up --build
-```
+1. **Configure Environment**: Copy the example environment file and add your Stripe keys:
+   ```bash
+   cp .env.example .env
+   ```
+   *Edit `.env` and provide your `STRIPE_SECRET_KEY`.*
+
+2. **Run Stack**:
+   ```bash
+   docker-compose up --build
+   ```
 
 The application will be available at:
 - **Frontend**: http://localhost:3000

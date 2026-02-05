@@ -63,6 +63,7 @@
 - [x] Add beginner-friendly glossary to walkthrough
 - [x] Update README.md with visual summaries and beginner notes
 - [x] Consolidate technical findings and verification results
+- [x] Add `.env.example` and Stripe setup instructions to README.md
 
 # Task: Refactor Project Structure (Testing)
 
