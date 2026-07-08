@@ -58,10 +58,10 @@ async function handleSubmit(payload: {
                 :showChangeReason="hasExistingPricing"
                 @submit="handleSubmit"
             />
-            <div v-if="pricing?.pricesLastSyncedAt" class="text-xs text-gray-500 mt-2 text-center">
-                Last synced: {{ new Date(pricing.pricesLastSyncedAt).toLocaleString() }}
-            </div>
         </transition>
+        <div v-if="pricing?.pricesLastSyncedAt" class="text-xs text-gray-500 mt-2 text-center">
+            Last synced: {{ new Date(pricing.pricesLastSyncedAt).toLocaleString() }}
+        </div>
 
         <transition name="slide-up">
             <PricingHistoryList v-if="history.length > 0" :history="history" />
